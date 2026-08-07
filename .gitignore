@@ -1,0 +1,28 @@
+# Python virtual environments & cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# Node.js
+node_modules/
+dist/
+.eslintcache
+
+# Databases
+*.db
+*.sqlite3
+
+# OS / IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
