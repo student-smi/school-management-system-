@@ -12,6 +12,10 @@ DATABASE_URL = os.getenv("DATABASE_URL", "")
 if not DATABASE_URL or "YOUR_PASSWORD" in DATABASE_URL or "YOUR_PROJECT_REF" in DATABASE_URL:
     DATABASE_URL = "sqlite:///./college_sms.db"
 
+# Supabase (and some other providers) return "postgres://" — SQLAlchemy requires "postgresql://"
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
 if DATABASE_URL.startswith("sqlite"):
     engine = create_engine(
         DATABASE_URL,

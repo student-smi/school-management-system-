@@ -22,7 +22,7 @@ class Student(Base):
     name        = Column(String(150), nullable=False)
     email       = Column(String(255), unique=True, nullable=False, index=True)
     phone       = Column(String(20), nullable=True)
-    gender      = Column(SAEnum(GenderType), nullable=True)
+    gender      = Column(SAEnum(GenderType, values_callable=lambda x: [e.value for e in x]), nullable=True)
     dob         = Column(Date, nullable=True)
     address     = Column(Text, nullable=True)
     class_id    = Column(UUID(as_uuid=True), ForeignKey("classes.id", ondelete="SET NULL"), nullable=True, index=True)

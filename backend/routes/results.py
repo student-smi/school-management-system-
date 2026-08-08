@@ -2,13 +2,33 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.result import ResultCreate, ResultUpdate, ResultOut
+from schemas.result import ResultCreate, ResultUpdate, ResultOut, BulkResultCreate
 from crud import result as crud
 from crud import student as student_crud
 from auth.dependencies import require_admin, get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/results", tags=["Results"])
+
+
+@router.post("/bulk", response_model=List[ResultOut], status_code=status.HTTP_201_CREATED)
+def bulk_create_results(
+    data: BulkResultCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    """Submit results for all students in an exam at once (Admin only)."""
+    return crud.bulk_create(db, data)
+
+
+@router.get("/exam/{exam_id}", response_model=List[ResultOut])
+def get_exam_results(
+    exam_id: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    """Get all results for a specific exam (Admin only)."""
+    return crud.get_by_exam(db, exam_id)
 
 
 @router.get("/", response_model=List[ResultOut])

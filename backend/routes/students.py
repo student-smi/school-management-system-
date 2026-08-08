@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.student import StudentCreate, StudentUpdate, StudentOut
+from schemas.student import StudentCreate, StudentUpdate, StudentOut, StudentCreatedOut
 from crud import student as crud
 from auth.dependencies import require_admin, get_current_user
 from models.user import User
@@ -46,14 +46,18 @@ def get_student(
     return student
 
 
-@router.post("/", response_model=StudentOut, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=StudentCreatedOut, status_code=status.HTTP_201_CREATED)
 def create_student(
     data: StudentCreate,
     db: Session = Depends(get_db),
     _: User = Depends(require_admin)
 ):
-    """Create a new student (Admin only)."""
-    return crud.create(db, data)
+    """Create a new student with login account (Admin only)."""
+    student, plain_password = crud.create(db, data)
+    return StudentCreatedOut(
+        **StudentOut.model_validate(student).model_dump(),
+        initial_password=plain_password,
+    )
 
 
 @router.put("/{student_id}", response_model=StudentOut)

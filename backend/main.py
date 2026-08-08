@@ -9,7 +9,7 @@ load_dotenv()
 # Import all models so SQLAlchemy knows about them
 from database import Base, engine, SessionLocal
 from models import User, Student, Class, Exam, Attendance, Result  # noqa: F401
-from passlib.context import CryptContext
+from auth.password import hash_password
 
 # Import routers
 from routes.auth       import router as auth_router
@@ -32,7 +32,7 @@ app = FastAPI(
 origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,16 +41,13 @@ app.add_middleware(
 # ── Auto create tables & seed admin ───────────────────────────
 Base.metadata.create_all(bind=engine)
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
 @app.on_event("startup")
 def seed_admin_user():
     db = SessionLocal()
     try:
         admin = db.query(User).filter(User.email == "admin@college.com").first()
         if not admin:
-            hashed_pwd = pwd_context.hash("admin123")
+            hashed_pwd = hash_password("admin123")
             admin_user = User(
                 email="admin@college.com",
                 password=hashed_pwd,

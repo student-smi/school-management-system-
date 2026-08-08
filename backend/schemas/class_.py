@@ -1,6 +1,7 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from typing import Optional
 from datetime import datetime
+from uuid import UUID
 
 
 class ClassBase(BaseModel):
@@ -20,9 +21,11 @@ class ClassUpdate(BaseModel):
 
 
 class ClassOut(ClassBase):
-    id:         str
+    id:         UUID
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
+
+    @field_serializer("id")
+    def serialize_id(self, v): return str(v)

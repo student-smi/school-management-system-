@@ -12,6 +12,10 @@ def get_by_id(db: Session, exam_id: str) -> Optional[Exam]:
     return db.query(Exam).filter(Exam.id == exam_id).first()
 
 
+def get_by_class(db: Session, class_id: str) -> List[Exam]:
+    return db.query(Exam).filter(Exam.class_id == class_id).order_by(Exam.exam_date).all()
+
+
 def create(db: Session, data: ExamCreate) -> Exam:
     obj = Exam(**data.model_dump())
     db.add(obj)

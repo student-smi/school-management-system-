@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from models.attendance import Attendance
-from schemas.attendance import AttendanceCreate, AttendanceUpdate
+from schemas.attendance import AttendanceCreate, AttendanceUpdate, BulkAttendanceCreate
 from typing import List, Optional
 from datetime import date
 
@@ -22,6 +22,36 @@ def get_by_class_and_date(db: Session, class_id: str, date: date) -> List[Attend
         Attendance.class_id == class_id,
         Attendance.date == date
     ).all()
+
+
+def get_by_class(db: Session, class_id: str) -> List[Attendance]:
+    return db.query(Attendance).filter(Attendance.class_id == class_id).order_by(Attendance.date.desc()).all()
+
+
+def bulk_create(db: Session, data: BulkAttendanceCreate, marked_by: str = None) -> List[Attendance]:
+    """Delete existing records for this class+date, then insert fresh ones."""
+    # Remove old records for same class+date to avoid duplicates
+    db.query(Attendance).filter(
+        Attendance.class_id == data.class_id,
+        Attendance.date == data.date
+    ).delete(synchronize_session=False)
+
+    records = []
+    for item in data.records:
+        obj = Attendance(
+            student_id=item.student_id,
+            class_id=data.class_id,
+            date=data.date,
+            status=item.status,
+            marked_by=marked_by,
+        )
+        db.add(obj)
+        records.append(obj)
+
+    db.commit()
+    for obj in records:
+        db.refresh(obj)
+    return records
 
 
 def create(db: Session, data: AttendanceCreate, marked_by: str = None) -> Attendance:

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from models.result import Result
-from schemas.result import ResultCreate, ResultUpdate
+from schemas.result import ResultCreate, ResultUpdate, BulkResultCreate
 from typing import List, Optional
 
 
@@ -14,6 +14,32 @@ def get_by_id(db: Session, result_id: str) -> Optional[Result]:
 
 def get_by_student(db: Session, student_id: str) -> List[Result]:
     return db.query(Result).filter(Result.student_id == student_id).all()
+
+
+def get_by_exam(db: Session, exam_id: str) -> List[Result]:
+    return db.query(Result).filter(Result.exam_id == exam_id).all()
+
+
+def bulk_create(db: Session, data: BulkResultCreate) -> List[Result]:
+    """Delete existing results for this exam, then insert fresh ones."""
+    db.query(Result).filter(Result.exam_id == data.exam_id).delete(synchronize_session=False)
+
+    records = []
+    for item in data.records:
+        obj = Result(
+            student_id=item.student_id,
+            exam_id=data.exam_id,
+            marks=item.marks,
+            grade=item.grade,
+            remarks=item.remarks,
+        )
+        db.add(obj)
+        records.append(obj)
+
+    db.commit()
+    for obj in records:
+        db.refresh(obj)
+    return records
 
 
 def create(db: Session, data: ResultCreate) -> Result:

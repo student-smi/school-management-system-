@@ -2,13 +2,33 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas.attendance import AttendanceCreate, AttendanceUpdate, AttendanceOut
+from schemas.attendance import AttendanceCreate, AttendanceUpdate, AttendanceOut, BulkAttendanceCreate
 from crud import attendance as crud
 from crud import student as student_crud
 from auth.dependencies import require_admin, get_current_user
 from models.user import User
 
 router = APIRouter(prefix="/attendance", tags=["Attendance"])
+
+
+@router.post("/bulk", response_model=List[AttendanceOut], status_code=status.HTTP_201_CREATED)
+def mark_bulk_attendance(
+    data: BulkAttendanceCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin)
+):
+    """Mark attendance for all students in a class at once (Admin only)."""
+    return crud.bulk_create(db, data, marked_by=str(current_user.id))
+
+
+@router.get("/class/{class_id}", response_model=List[AttendanceOut])
+def get_class_attendance(
+    class_id: str,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_admin)
+):
+    """Get all attendance records for a class (Admin only)."""
+    return crud.get_by_class(db, class_id)
 
 
 @router.get("/", response_model=List[AttendanceOut])

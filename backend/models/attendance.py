@@ -20,7 +20,7 @@ class Attendance(Base):
     student_id = Column(UUID(as_uuid=True), ForeignKey("students.id", ondelete="CASCADE"), nullable=False, index=True)
     class_id   = Column(UUID(as_uuid=True), ForeignKey("classes.id", ondelete="CASCADE"), nullable=False, index=True)
     date       = Column(Date, nullable=False, index=True)
-    status     = Column(SAEnum(AttendanceStatus), nullable=False, default=AttendanceStatus.present)
+    status     = Column(SAEnum(AttendanceStatus, values_callable=lambda x: [e.value for e in x]), nullable=False, default=AttendanceStatus.present)
     marked_by  = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
