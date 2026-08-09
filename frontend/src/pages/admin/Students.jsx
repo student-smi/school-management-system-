@@ -120,6 +120,23 @@ export default function Students() {
 
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Student' : 'Add Student'}>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Class — top pe taaki pehle dikhe */}
+          <div>
+            <label className="label">Class *</label>
+            <select className="input" value={form.class_id}
+              onChange={e => setForm({ ...form, class_id: e.target.value })}>
+              <option value="">— Select Class —</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name} — {c.semester} ({c.section})
+                </option>
+              ))}
+            </select>
+            {classes.length === 0 && (
+              <p className="text-xs text-amber-500 mt-1">No classes found. Add classes first.</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Student ID *</label>
@@ -174,18 +191,6 @@ export default function Students() {
               <input className="input" type="date" value={form.dob}
                 onChange={e => setForm({ ...form, dob: e.target.value })} />
             </div>
-          </div>
-          <div>
-            <label className="label">Class</label>
-            <select className="input" value={form.class_id}
-              onChange={e => setForm({ ...form, class_id: e.target.value })}>
-              <option value="">Select Class</option>
-              {classes.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} — {c.semester} ({c.section})
-                </option>
-              ))}
-            </select>
           </div>
           <div>
             <label className="label">Address</label>
