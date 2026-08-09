@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import api from '../../api/axios'
 import Table from '../../components/Table'
 import Modal from '../../components/Modal'
@@ -7,6 +7,7 @@ const EMPTY = {
   student_id: '', name: '', email: '', phone: '', password: '',
   gender: '', dob: '', address: '', class_id: '', roll_number: ''
 }
+const PAGE_SIZE = 10
 
 export default function Students() {
   const [students, setStudents] = useState([])
@@ -14,9 +15,10 @@ export default function Students() {
   const [modal, setModal]       = useState(false)
   const [editing, setEditing]   = useState(null)
   const [form, setForm]         = useState(EMPTY)
-  const [search, setSearch]     = useState('')
+  const [search, setSearch]           = useState('')
   const [filterClass, setFilterClass] = useState('')
-  const [error, setError]       = useState('')
+  const [error, setError]             = useState('')
+  const [page, setPage]               = useState(1)
   const [credentials, setCredentials] = useState(null)
 
   const load = async () => {
@@ -71,13 +73,13 @@ export default function Students() {
     load()
   }
 
-  const filtered = students.filter(s => {
+  const filtered = useMemo(() => students.filter(s => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.student_id.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase())
     const matchClass = !filterClass || s.class_id === filterClass
     return matchSearch && matchClass
-  })
+  }), [students, search, filterClass])
 
   const classMap = Object.fromEntries(classes.map(c => [c.id, `${c.name} - ${c.semester} (${c.section})`]))
 
@@ -86,6 +88,14 @@ export default function Students() {
     ...c,
     count: students.filter(s => s.class_id === c.id).length
   }))
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage   = Math.min(page, totalPages)
+  const paginated  = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+
+  const handleSearch = (val) => { setSearch(val);       setPage(1) }
+  const handleFilter = (id)  => { setFilterClass(id);   setPage(1) }
 
   const columns = [
     { key: 'student_id',  label: 'ID' },
@@ -111,7 +121,7 @@ export default function Students() {
       {classes.length > 0 && (
         <div className="flex flex-wrap gap-2">
           <button
-            onClick={() => setFilterClass('')}
+            onClick={() => handleFilter('')}
             className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
               !filterClass
                 ? 'bg-primary-600 text-white border-primary-600'
@@ -123,7 +133,7 @@ export default function Students() {
           {classCount.map(c => (
             <button
               key={c.id}
-              onClick={() => setFilterClass(filterClass === c.id ? '' : c.id)}
+              onClick={() => handleFilter(filterClass === c.id ? '' : c.id)}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
                 filterClass === c.id
                   ? 'bg-primary-600 text-white border-primary-600'
@@ -148,14 +158,14 @@ export default function Students() {
             className="input flex-1 min-w-[180px]"
             placeholder="Search by name, ID or email..."
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={e => handleSearch(e.target.value)}
           />
-          {filterClass && (
+          {(filterClass || search) && (
             <button
-              onClick={() => setFilterClass('')}
+              onClick={() => { handleFilter(''); handleSearch('') }}
               className="btn-secondary text-xs px-3"
             >
-              ✕ Clear Filter
+              ✕ Clear
             </button>
           )}
         </div>
@@ -166,7 +176,7 @@ export default function Students() {
         )}
         <Table
           columns={columns}
-          data={filtered}
+          data={paginated}
           actions={(row) => (
             <>
               <button className="btn-secondary text-xs px-3 py-1" onClick={() => openEdit(row)}>Edit</button>
@@ -174,6 +184,49 @@ export default function Students() {
             </>
           )}
         />
+
+        {/* Pagination */}
+        {filtered.length > PAGE_SIZE && (
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-100">
+            <p className="text-xs text-gray-500">
+              Showing {((safePage - 1) * PAGE_SIZE) + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={safePage === 1}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 bg-white
+                           text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                ← Prev
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1)
+                .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+                .reduce((acc, p, idx, arr) => {
+                  if (idx > 0 && p - arr[idx - 1] > 1) acc.push('...')
+                  acc.push(p)
+                  return acc
+                }, [])
+                .map((p, idx) =>
+                  p === '...' ? (
+                    <span key={`d${idx}`} className="px-2 text-gray-400 text-sm">…</span>
+                  ) : (
+                    <button key={p} onClick={() => setPage(p)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors
+                        ${safePage === p
+                          ? 'bg-primary-600 text-white border-primary-600'
+                          : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }`}>
+                      {p}
+                    </button>
+                  )
+                )
+              }
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={safePage === totalPages}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 bg-white
+                           text-gray-600 hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Student' : 'Add Student'}>
