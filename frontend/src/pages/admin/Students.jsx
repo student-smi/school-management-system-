@@ -15,6 +15,7 @@ export default function Students() {
   const [editing, setEditing]   = useState(null)
   const [form, setForm]         = useState(EMPTY)
   const [search, setSearch]     = useState('')
+  const [filterClass, setFilterClass] = useState('')
   const [error, setError]       = useState('')
   const [credentials, setCredentials] = useState(null)
 
@@ -70,13 +71,21 @@ export default function Students() {
     load()
   }
 
-  const filtered = students.filter(s =>
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.student_id.toLowerCase().includes(search.toLowerCase()) ||
-    s.email.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = students.filter(s => {
+    const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
+      s.student_id.toLowerCase().includes(search.toLowerCase()) ||
+      s.email.toLowerCase().includes(search.toLowerCase())
+    const matchClass = !filterClass || s.class_id === filterClass
+    return matchSearch && matchClass
+  })
 
   const classMap = Object.fromEntries(classes.map(c => [c.id, `${c.name} - ${c.semester} (${c.section})`]))
+
+  // Count per class
+  const classCount = classes.map(c => ({
+    ...c,
+    count: students.filter(s => s.class_id === c.id).length
+  }))
 
   const columns = [
     { key: 'student_id',  label: 'ID' },
@@ -98,14 +107,63 @@ export default function Students() {
         <button id="add-student-btn" className="btn-primary" onClick={openAdd}>+ Add Student</button>
       </div>
 
+      {/* ── Class Count Badges ── */}
+      {classes.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => setFilterClass('')}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+              !filterClass
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
+            }`}
+          >
+            All ({students.length})
+          </button>
+          {classCount.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setFilterClass(filterClass === c.id ? '' : c.id)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                filterClass === c.id
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'bg-white text-gray-600 border-gray-200 hover:border-primary-300'
+              }`}
+            >
+              {c.name} — {c.semester} ({c.section})
+              <span className={`ml-1.5 px-1.5 py-0.5 rounded-full text-xs ${
+                filterClass === c.id ? 'bg-white/20' : 'bg-gray-100'
+              }`}>
+                {c.count}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="card">
-        <input
-          id="student-search"
-          className="input max-w-sm mb-4"
-          placeholder="Search by name, ID or email..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
+        <div className="flex flex-wrap gap-3 mb-4">
+          <input
+            id="student-search"
+            className="input flex-1 min-w-[180px]"
+            placeholder="Search by name, ID or email..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {filterClass && (
+            <button
+              onClick={() => setFilterClass('')}
+              className="btn-secondary text-xs px-3"
+            >
+              ✕ Clear Filter
+            </button>
+          )}
+        </div>
+        {filterClass && (
+          <p className="text-xs text-primary-600 font-medium mb-3">
+            Showing: {classMap[filterClass]} — {filtered.length} student{filtered.length !== 1 ? 's' : ''}
+          </p>
+        )}
         <Table
           columns={columns}
           data={filtered}
