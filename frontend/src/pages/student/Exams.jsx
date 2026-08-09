@@ -7,7 +7,7 @@ export default function StudentExams() {
   const today = new Date().toISOString().split('T')[0]
 
   useEffect(() => {
-    api.get('/exams/?limit=100').then(r => setData(r.data))
+    api.get('/exams/my').then(r => setData(r.data))
   }, [])
 
   const upcoming = data.filter(e => e.exam_date >= today)

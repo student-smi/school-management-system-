@@ -15,7 +15,7 @@ export default function StudentDashboard() {
         const [p, a, e, r] = await Promise.all([
           api.get('/students/me'),
           api.get('/attendance/me'),
-          api.get('/exams/?limit=100'),
+          api.get('/exams/my'),
           api.get('/results/me'),
         ])
         setProfile(p.data); setAttendance(a.data); setExams(e.data); setResults(r.data)

@@ -15,7 +15,9 @@ export default function Login() {
     setLoading(true)
     try {
       const role = await login(form.email, form.password)
-      navigate(role === 'admin' ? '/admin' : '/student')
+      if (role === 'admin') navigate('/admin')
+      else if (role === 'teacher') navigate('/teacher')
+      else navigate('/student')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed. Check your credentials.')
     } finally {

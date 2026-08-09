@@ -1,126 +1,340 @@
 import { useEffect, useState } from 'react'
 import api from '../../api/axios'
-import Table from '../../components/Table'
-import Modal from '../../components/Modal'
 
-const EMPTY = { name: '', subject: '', exam_date: '', max_marks: 100, class_id: '' }
+const EMPTY = { name: '', subject: '', exam_date: '', max_marks: 100 }
 
 export default function Exams() {
-  const [data, setData]       = useState([])
-  const [classes, setClasses] = useState([])
-  const [modal, setModal]     = useState(false)
-  const [editing, setEditing] = useState(null)
-  const [form, setForm]       = useState(EMPTY)
-  const [error, setError]     = useState('')
+  const [classes, setClasses]       = useState([])
+  const [selectedClass, setSelectedClass] = useState('')
+  const [exams, setExams]           = useState([])
+  const [loading, setLoading]       = useState(false)
 
-  const load = async () => {
-    const [e, c] = await Promise.all([
-      api.get('/exams/?limit=1000'),
-      api.get('/classes/?limit=1000'),
-    ])
-    setData(e.data); setClasses(c.data)
-  }
-  useEffect(() => { load() }, [])
+  // Add exam form
+  const [form, setForm]             = useState(EMPTY)
+  const [formError, setFormError]   = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [submitMsg, setSubmitMsg]   = useState('')
 
-  const openAdd  = () => { setEditing(null); setForm(EMPTY); setError(''); setModal(true) }
-  const openEdit = (row) => { setEditing(row); setForm({ ...row }); setError(''); setModal(true) }
-  const closeModal = () => { setModal(false); setEditing(null) }
+  // Edit state
+  const [editingId, setEditingId]   = useState(null)
+  const [editForm, setEditForm]     = useState({})
 
-  const handleSubmit = async (e) => {
-    e.preventDefault(); setError('')
+  const today = new Date().toISOString().split('T')[0]
+
+  // Load classes on mount
+  useEffect(() => {
+    api.get('/classes/?limit=1000').then(r => setClasses(r.data))
+  }, [])
+
+  // When class changes → load exams for that class
+  useEffect(() => {
+    if (!selectedClass) { setExams([]); return }
+    loadExams()
+  }, [selectedClass])
+
+  const loadExams = async () => {
+    if (!selectedClass) return
+    setLoading(true)
     try {
-      const payload = { ...form, max_marks: parseInt(form.max_marks) }
-      if (editing) await api.put(`/exams/${editing.id}`, payload)
-      else         await api.post('/exams/', payload)
-      closeModal(); load()
+      const res = await api.get('/exams/?limit=1000')
+      const filtered = res.data.filter(e => e.class_id === selectedClass)
+      setExams(filtered.sort((a, b) => a.exam_date.localeCompare(b.exam_date)))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleAddExam = async (e) => {
+    e.preventDefault()
+    setFormError(''); setSubmitMsg('')
+    setSubmitting(true)
+    try {
+      await api.post('/exams/', {
+        ...form,
+        max_marks: parseInt(form.max_marks),
+        class_id: selectedClass || null,
+      })
+      setForm(EMPTY)
+      setSubmitMsg('✅ Exam added successfully!')
+      loadExams()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error saving exam.')
+      const detail = err.response?.data?.detail
+      setFormError(Array.isArray(detail) ? detail.map(d => d.msg).join(', ') : detail || 'Error adding exam.')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this exam?')) return
     await api.delete(`/exams/${id}`)
-    load()
+    loadExams()
   }
 
-  const classMap = Object.fromEntries(classes.map(c => [c.id, `${c.name} (${c.section})`]))
-  const today = new Date().toISOString().split('T')[0]
+  const startEdit = (exam) => {
+    setEditingId(exam.id)
+    setEditForm({
+      name: exam.name,
+      subject: exam.subject,
+      exam_date: exam.exam_date,
+      max_marks: exam.max_marks,
+    })
+  }
 
-  const columns = [
-    { key: 'name',      label: 'Exam Name' },
-    { key: 'subject',   label: 'Subject' },
-    { key: 'exam_date', label: 'Date',
-      render: (v) => (
-        <span className={v >= today ? 'text-emerald-600 font-medium' : 'text-gray-400'}>{v}</span>
-      )
-    },
-    { key: 'max_marks', label: 'Max Marks' },
-    { key: 'class_id',  label: 'Class', render: (v) => classMap[v] || 'All' },
-  ]
+  const saveEdit = async (id) => {
+    await api.put(`/exams/${id}`, {
+      ...editForm,
+      max_marks: parseInt(editForm.max_marks),
+    })
+    setEditingId(null)
+    loadExams()
+  }
+
+  const selectedClassName = classes.find(c => c.id === selectedClass)
+  const classLabel = selectedClassName
+    ? `${selectedClassName.name} — ${selectedClassName.semester} (${selectedClassName.section})`
+    : ''
+
+  const upcoming = exams.filter(e => e.exam_date >= today)
+  const past     = exams.filter(e => e.exam_date < today)
 
   return (
-    <div className="p-6 space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Exams</h1>
-          <p className="page-subtitle">{data.length} exams scheduled</p>
-        </div>
-        <button id="add-exam-btn" className="btn-primary" onClick={openAdd}>+ Add Exam</button>
+    <div className="p-6 space-y-6 animate-fade-in">
+      <div>
+        <h1 className="page-title">Exams</h1>
+        <p className="page-subtitle">Select a class to manage its exams</p>
       </div>
 
+      {/* ── Step 1: Select Class ── */}
       <div className="card">
-        <Table columns={columns} data={data}
-          actions={(row) => (
-            <>
-              <button className="btn-secondary text-xs px-3 py-1" onClick={() => openEdit(row)}>Edit</button>
-              <button className="btn-danger text-xs px-3 py-1" onClick={() => handleDelete(row.id)}>Delete</button>
-            </>
-          )}
-        />
+        <h2 className="font-bold text-gray-800 text-base mb-4 pb-2 border-b border-gray-100">
+          Select Class
+        </h2>
+        <div>
+          <label className="label">Current Class:</label>
+          <select
+            className="input max-w-md"
+            value={selectedClass}
+            onChange={e => { setSelectedClass(e.target.value); setSubmitMsg(''); setFormError('') }}
+          >
+            <option value="">— Choose a class —</option>
+            {classes.map(c => (
+              <option key={c.id} value={c.id}>
+                {c.name} — {c.semester} ({c.section})
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Exam' : 'Add Exam'}>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Exam Name *</label>
-            <input className="input" required placeholder="Mid-Term Exam"
-              value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-          </div>
+      {/* ── Step 2: Add Exam ── */}
+      {selectedClass && (
+        <div className="card">
+          <h2 className="font-bold text-gray-800 text-base mb-4 pb-2 border-b border-gray-100">
+            Add Exam
+          </h2>
+          <form onSubmit={handleAddExam} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="label">Exam Name *</label>
+                <input
+                  className="input"
+                  required
+                  placeholder="Mid-Term Exam"
+                  value={form.name}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">Subject *</label>
+                <input
+                  className="input"
+                  required
+                  placeholder="Mathematics"
+                  value={form.subject}
+                  onChange={e => setForm({ ...form, subject: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">Exam Date *</label>
+                <input
+                  className="input"
+                  type="date"
+                  required
+                  value={form.exam_date}
+                  onChange={e => setForm({ ...form, exam_date: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">Max Marks *</label>
+                <input
+                  className="input"
+                  type="number"
+                  min="1"
+                  required
+                  value={form.max_marks}
+                  onChange={e => setForm({ ...form, max_marks: e.target.value })}
+                />
+              </div>
+            </div>
+
+            {formError && <p className="text-red-500 text-sm">{formError}</p>}
+            {submitMsg && <p className="text-emerald-600 text-sm font-medium">{submitMsg}</p>}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="btn-primary disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Adding...' : '+ Add Exam'}
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* ── Step 3: Exam List ── */}
+      {selectedClass && !loading && exams.length > 0 && (
+        <div className="card">
+          <h2 className="font-bold text-gray-800 text-base mb-4 pb-2 border-b border-gray-100">
+            Exam Schedule — {classLabel}
+          </h2>
+
+          {/* Upcoming */}
+          {upcoming.length > 0 && (
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wide mb-3">
+                Upcoming ({upcoming.length})
+              </p>
+              <div className="space-y-2">
+                {upcoming.map((exam, i) => (
+                  <ExamRow
+                    key={exam.id}
+                    exam={exam}
+                    index={i}
+                    isUpcoming
+                    editingId={editingId}
+                    editForm={editForm}
+                    setEditForm={setEditForm}
+                    startEdit={startEdit}
+                    saveEdit={saveEdit}
+                    cancelEdit={() => setEditingId(null)}
+                    handleDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Past */}
+          {past.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                Past ({past.length})
+              </p>
+              <div className="space-y-2">
+                {past.map((exam, i) => (
+                  <ExamRow
+                    key={exam.id}
+                    exam={exam}
+                    index={i}
+                    isUpcoming={false}
+                    editingId={editingId}
+                    editForm={editForm}
+                    setEditForm={setEditForm}
+                    startEdit={startEdit}
+                    saveEdit={saveEdit}
+                    cancelEdit={() => setEditingId(null)}
+                    handleDelete={handleDelete}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {selectedClass && !loading && exams.length === 0 && (
+        <div className="card text-center text-gray-400 py-8 text-sm">
+          No exams scheduled for this class yet. Add one above.
+        </div>
+      )}
+
+      {selectedClass && loading && (
+        <div className="card text-center text-gray-400 py-8 text-sm">
+          Loading exams...
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Single Exam Row Component ──
+function ExamRow({ exam, index, isUpcoming, editingId, editForm, setEditForm, startEdit, saveEdit, cancelEdit, handleDelete }) {
+  const isEditing = editingId === exam.id
+
+  return (
+    <div className={`rounded-lg border ${isUpcoming ? 'border-emerald-100 bg-emerald-50/40' : 'border-gray-100 bg-gray-50/40'}`}>
+      {isEditing ? (
+        // Edit mode
+        <div className="p-4 space-y-3">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Subject *</label>
-              <input className="input" required placeholder="Mathematics"
-                value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} />
+              <label className="label">Exam Name</label>
+              <input className="input text-sm py-2" value={editForm.name}
+                onChange={e => setEditForm({ ...editForm, name: e.target.value })} />
             </div>
             <div>
-              <label className="label">Max Marks *</label>
-              <input className="input" type="number" min="1" required
-                value={form.max_marks} onChange={e => setForm({ ...form, max_marks: e.target.value })} />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Date *</label>
-              <input className="input" type="date" required value={form.exam_date}
-                onChange={e => setForm({ ...form, exam_date: e.target.value })} />
+              <label className="label">Subject</label>
+              <input className="input text-sm py-2" value={editForm.subject}
+                onChange={e => setEditForm({ ...editForm, subject: e.target.value })} />
             </div>
             <div>
-              <label className="label">Class</label>
-              <select className="input" value={form.class_id}
-                onChange={e => setForm({ ...form, class_id: e.target.value })}>
-                <option value="">All Classes</option>
-                {classes.map(c => <option key={c.id} value={c.id}>{c.name} — {c.semester} ({c.section})</option>)}
-              </select>
+              <label className="label">Date</label>
+              <input className="input text-sm py-2" type="date" value={editForm.exam_date}
+                onChange={e => setEditForm({ ...editForm, exam_date: e.target.value })} />
+            </div>
+            <div>
+              <label className="label">Max Marks</label>
+              <input className="input text-sm py-2" type="number" min="1" value={editForm.max_marks}
+                onChange={e => setEditForm({ ...editForm, max_marks: e.target.value })} />
             </div>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="btn-primary flex-1">{editing ? 'Save' : 'Add Exam'}</button>
-            <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
+          <div className="flex gap-2">
+            <button onClick={() => saveEdit(exam.id)} className="btn-primary text-xs px-4 py-1.5">Save</button>
+            <button onClick={cancelEdit} className="btn-secondary text-xs px-4 py-1.5">Cancel</button>
           </div>
-        </form>
-      </Modal>
+        </div>
+      ) : (
+        // View mode
+        <div className="flex items-center justify-between px-4 py-3">
+          <div className="flex items-center gap-4">
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-white
+              ${isUpcoming ? 'bg-emerald-500' : 'bg-gray-400'}`}>
+              {index + 1}
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">{exam.name}</p>
+              <p className="text-xs text-gray-500">{exam.subject}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-center hidden sm:block">
+              <p className="text-xs text-gray-400">Date</p>
+              <p className={`text-sm font-medium ${isUpcoming ? 'text-emerald-600' : 'text-gray-400'}`}>
+                {exam.exam_date}
+              </p>
+            </div>
+            <div className="text-center hidden sm:block">
+              <p className="text-xs text-gray-400">Max Marks</p>
+              <p className="text-sm font-semibold text-gray-700">{exam.max_marks}</p>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => startEdit(exam)} className="btn-secondary text-xs px-3 py-1">Edit</button>
+              <button onClick={() => handleDelete(exam.id)} className="btn-danger text-xs px-3 py-1">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

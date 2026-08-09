@@ -5,6 +5,7 @@ from enum import Enum
 class UserRole(str, Enum):
     admin   = "admin"
     student = "student"
+    teacher = "teacher"
 
 
 class LoginRequest(BaseModel):

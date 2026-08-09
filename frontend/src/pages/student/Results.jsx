@@ -7,7 +7,7 @@ export default function StudentResults() {
   const [exams, setExams]     = useState([])
 
   useEffect(() => {
-    Promise.all([api.get('/results/me'), api.get('/exams/?limit=100')]).then(([r, e]) => {
+    Promise.all([api.get('/results/me'), api.get('/exams/my')]).then(([r, e]) => {
       setResults(r.data); setExams(e.data)
     })
   }, [])

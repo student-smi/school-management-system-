@@ -4,7 +4,7 @@ import Table from '../../components/Table'
 import Modal from '../../components/Modal'
 
 const EMPTY = {
-  student_id: '', name: '', email: '', phone: '',
+  student_id: '', name: '', email: '', phone: '', password: '',
   gender: '', dob: '', address: '', class_id: '', roll_number: ''
 }
 
@@ -16,6 +16,7 @@ export default function Students() {
   const [form, setForm]         = useState(EMPTY)
   const [search, setSearch]     = useState('')
   const [error, setError]       = useState('')
+  const [credentials, setCredentials] = useState(null)
 
   const load = async () => {
     const [s, c] = await Promise.all([
@@ -34,15 +35,32 @@ export default function Students() {
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('')
+    const payload = {
+      ...form,
+      gender: form.gender || null,
+      dob: form.dob || null,
+      class_id: form.class_id || null,
+      phone: form.phone || null,
+      address: form.address || null,
+      roll_number: form.roll_number || null,
+      password: form.password || null,
+    }
     try {
       if (editing) {
-        await api.put(`/students/${editing.id}`, form)
+        await api.put(`/students/${editing.id}`, payload)
+        closeModal(); load()
       } else {
-        await api.post('/students/', form)
+        const res = await api.post('/students/', payload)
+        closeModal(); load()
+        setCredentials({
+          name: res.data.name,
+          email: res.data.email,
+          password: res.data.initial_password,
+        })
       }
-      closeModal(); load()
     } catch (err) {
-      setError(err.response?.data?.detail || 'Something went wrong.')
+      const detail = err.response?.data?.detail
+      setError(Array.isArray(detail) ? detail.map(d => d.msg).join(', ') : detail || 'Something went wrong.')
     }
   }
 
@@ -131,6 +149,17 @@ export default function Students() {
                 onChange={e => setForm({ ...form, phone: e.target.value })} />
             </div>
           </div>
+          {!editing && (
+            <div>
+              <label className="label">Login Password</label>
+              <input className="input" type="text" value={form.password}
+                placeholder="Leave blank to use Student ID as password"
+                onChange={e => setForm({ ...form, password: e.target.value })} />
+              <p className="text-xs text-slate-500 mt-1">
+                Student will use this email and password to log in.
+              </p>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="label">Gender</label>
@@ -171,6 +200,22 @@ export default function Students() {
             <button type="button" className="btn-secondary" onClick={closeModal}>Cancel</button>
           </div>
         </form>
+      </Modal>
+
+      <Modal isOpen={!!credentials} onClose={() => setCredentials(null)} title="Student Login Credentials">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Share these login details with <strong>{credentials?.name}</strong>:
+          </p>
+          <div className="bg-slate-50 rounded-xl p-4 space-y-2 text-sm font-mono">
+            <p><span className="text-slate-500">Email:</span> {credentials?.email}</p>
+            <p><span className="text-slate-500">Password:</span> {credentials?.password}</p>
+          </div>
+          <p className="text-xs text-amber-600">
+            Save these now — the password is shown only once.
+          </p>
+          <button className="btn-primary w-full" onClick={() => setCredentials(null)}>Got it</button>
+        </div>
       </Modal>
     </div>
   )

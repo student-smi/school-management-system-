@@ -8,7 +8,7 @@ load_dotenv()
 
 # Import all models so SQLAlchemy knows about them
 from database import Base, engine, SessionLocal
-from models import User, Student, Class, Exam, Attendance, Result  # noqa: F401
+from models import User, Student, Class, Exam, Attendance, Result, FeePayment, Teacher, Subject, TimetableEntry  # noqa: F401
 from auth.password import hash_password
 
 # Import routers
@@ -18,6 +18,10 @@ from routes.classes    import router as classes_router
 from routes.attendance import router as attendance_router
 from routes.exams      import router as exams_router
 from routes.results    import router as results_router
+from routes.fees       import router as fees_router
+from routes.teachers   import router as teachers_router
+from routes.subjects    import router as subjects_router
+from routes.timetables  import router as timetables_router
 
 # ── App Init ──────────────────────────────────────────────────
 app = FastAPI(
@@ -69,6 +73,10 @@ app.include_router(classes_router)
 app.include_router(attendance_router)
 app.include_router(exams_router)
 app.include_router(results_router)
+app.include_router(fees_router)
+app.include_router(teachers_router)
+app.include_router(subjects_router)
+app.include_router(timetables_router)
 
 
 # ── Health Check ──────────────────────────────────────────────
