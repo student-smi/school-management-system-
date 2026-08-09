@@ -39,7 +39,7 @@ export default function TeacherTimetable() {
   )
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">My Schedule</h1>
         <p className="page-subtitle">Your weekly teaching schedule</p>

@@ -155,7 +155,7 @@ export default function Attendance() {
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Attendance</h1>
         <p className="page-subtitle">Select a class to mark or view attendance</p>

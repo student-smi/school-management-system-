@@ -15,7 +15,7 @@ export default function TeacherDashboard() {
   if (loading) return <div className="p-6 text-gray-400">Loading...</div>
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Welcome, {teacher?.name || 'Teacher'} 👋</h1>
         <p className="page-subtitle">Teacher Dashboard</p>

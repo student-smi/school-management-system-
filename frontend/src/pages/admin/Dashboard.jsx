@@ -43,7 +43,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Admin Dashboard</h1>
         <p className="page-subtitle">Overview of your college management system</p>

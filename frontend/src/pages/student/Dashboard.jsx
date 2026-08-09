@@ -41,7 +41,7 @@ export default function StudentDashboard() {
   )
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Welcome, {profile?.name?.split(' ')[0] || 'Student'} 👋</h1>
         <p className="page-subtitle">Here's your academic overview</p>

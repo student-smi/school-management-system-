@@ -74,7 +74,7 @@ export default function Subjects() {
   )
 
   return (
-    <div className="p-6 space-y-5 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-5 animate-fade-in">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>

@@ -99,7 +99,7 @@ export default function Exams() {
   const past     = exams.filter(e => e.exam_date < today)
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Exams</h1>
         <p className="page-subtitle">Select a class to manage its exams</p>

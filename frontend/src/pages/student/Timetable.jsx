@@ -42,7 +42,7 @@ export default function StudentTimetable() {
   )
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">My Timetable</h1>
         <p className="page-subtitle">Weekly class schedule</p>

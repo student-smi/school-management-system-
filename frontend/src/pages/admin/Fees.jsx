@@ -157,7 +157,7 @@ export default function AdminFees() {
     : ''
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Fees</h1>
         <p className="page-subtitle">Select a class to generate or manage fee records</p>

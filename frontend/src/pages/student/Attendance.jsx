@@ -25,7 +25,7 @@ export default function StudentAttendance() {
   ]
 
   return (
-    <div className="p-6 space-y-5 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-5 animate-fade-in">
       <h1 className="page-title">My Attendance</h1>
 
       <div className="grid grid-cols-3 gap-4">

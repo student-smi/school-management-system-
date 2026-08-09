@@ -131,7 +131,7 @@ export default function AdminTimetable() {
   const filledCount = Object.values(grid).filter(v => v.subject_id || v.teacher_id).length
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Timetable</h1>
         <p className="page-subtitle">Select a class to build its weekly schedule</p>

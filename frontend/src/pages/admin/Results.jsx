@@ -159,7 +159,7 @@ export default function Results() {
   const today = new Date().toISOString().split('T')[0]
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-6 animate-fade-in">
       <div>
         <h1 className="page-title">Results</h1>
         <p className="page-subtitle">Select a class and exam to enter or view results</p>

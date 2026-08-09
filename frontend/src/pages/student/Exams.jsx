@@ -21,7 +21,7 @@ export default function StudentExams() {
   ]
 
   return (
-    <div className="p-6 space-y-5 animate-fade-in">
+    <div className="p-4 sm:p-6 space-y-5 animate-fade-in">
       <h1 className="page-title">Exams</h1>
 
       <div className="card">
