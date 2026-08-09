@@ -208,8 +208,8 @@ if cs_class and student_objs:
     cs_students = [s for sid, s in student_objs.items() if sid.startswith("CS")]
     FEE_LIST = [
         (FeeType.tuition, 15000, date(2026, 7, 31)),
-        (FeeType.exam,    2000,  date(2026, 8, 10)),
-        (FeeType.library, 500,   date(2026, 8, 15)),
+        (FeeType.tuition, 2000,  date(2026, 8, 10)),
+        (FeeType.tuition, 500,   date(2026, 8, 15)),
     ]
     for s in cs_students:
         for fee_type, amount, due_date in FEE_LIST:
