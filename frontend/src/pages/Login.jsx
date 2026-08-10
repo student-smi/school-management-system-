@@ -12,6 +12,13 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+
+    // Frontend validation
+    if (!form.email.trim()) { setError('Email is required'); return }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) { setError('Enter a valid email address'); return }
+    if (!form.password) { setError('Password is required'); return }
+    if (form.password.length < 3) { setError('Password is too short'); return }
+
     setLoading(true)
     try {
       const role = await login(form.email, form.password)

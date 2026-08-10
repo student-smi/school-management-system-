@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react'
 import api from '../../api/axios'
 import Table from '../../components/Table'
 import Modal from '../../components/Modal'
+import { FormField, fieldClass, validators, validate } from '../../components/FormField'
 
 const EMPTY = { name: '', semester: '', section: '' }
 
 export default function Classes() {
-  const [data, setData]   = useState([])
-  const [modal, setModal] = useState(false)
+  const [data, setData]       = useState([])
+  const [modal, setModal]     = useState(false)
   const [editing, setEditing] = useState(null)
-  const [form, setForm]   = useState(EMPTY)
-  const [error, setError] = useState('')
+  const [form, setForm]       = useState(EMPTY)
+  const [error, setError]     = useState('')
+  const [formErrors, setFormErrors] = useState({})
 
   const load = async () => {
     const res = await api.get('/classes/?limit=1000')
@@ -18,12 +20,19 @@ export default function Classes() {
   }
   useEffect(() => { load() }, [])
 
-  const openAdd  = () => { setEditing(null); setForm(EMPTY); setError(''); setModal(true) }
-  const openEdit = (row) => { setEditing(row); setForm({ ...row }); setError(''); setModal(true) }
-  const closeModal = () => { setModal(false); setEditing(null) }
+  const openAdd  = () => { setEditing(null); setForm(EMPTY); setError(''); setFormErrors({}); setModal(true) }
+  const openEdit = (row) => { setEditing(row); setForm({ ...row }); setError(''); setFormErrors({}); setModal(true) }
+  const closeModal = () => { setModal(false); setEditing(null); setFormErrors({}) }
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('')
+    const errs = validate({
+      name:     [validators.required(form.name, 'Class Name')],
+      semester: [validators.required(form.semester, 'Semester')],
+      section:  [validators.required(form.section, 'Section')],
+    })
+    if (Object.keys(errs).length > 0) { setFormErrors(errs); return }
+    setFormErrors({})
     try {
       if (editing) await api.put(`/classes/${editing.id}`, form)
       else         await api.post('/classes/', form)
@@ -70,24 +79,25 @@ export default function Classes() {
 
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Class' : 'Add Class'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label">Class Name *</label>
-            <input className="input" required placeholder="e.g. Computer Science"
+          <FormField label="Class Name" required error={formErrors.name}>
+            <input className={fieldClass(formErrors.name)} placeholder="e.g. Computer Science"
               value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-          </div>
+          </FormField>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Semester *</label>
-              <input className="input" required placeholder="Semester 3"
+            <FormField label="Semester" required error={formErrors.semester}>
+              <input className={fieldClass(formErrors.semester)} placeholder="e.g. Semester 3"
                 value={form.semester} onChange={e => setForm({ ...form, semester: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">Section *</label>
-              <input className="input" required placeholder="A"
+            </FormField>
+            <FormField label="Section" required error={formErrors.section}>
+              <input className={fieldClass(formErrors.section)} placeholder="e.g. A"
                 value={form.section} onChange={e => setForm({ ...form, section: e.target.value })} />
-            </div>
+            </FormField>
           </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+              ⚠ {error}
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="submit" className="btn-primary flex-1">
               {editing ? 'Save Changes' : 'Add Class'}

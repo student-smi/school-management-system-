@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from 'react'
 import api from '../../api/axios'
 import Table from '../../components/Table'
 import Modal from '../../components/Modal'
+import { FormField, fieldClass, validators, validate } from '../../components/FormField'
 
 const EMPTY = {
   student_id: '', name: '', email: '', phone: '', password: '',
@@ -18,6 +19,7 @@ export default function Students() {
   const [search, setSearch]           = useState('')
   const [filterClass, setFilterClass] = useState('')
   const [error, setError]             = useState('')
+  const [formErrors, setFormErrors]   = useState({})
   const [page, setPage]               = useState(1)
   const [credentials, setCredentials] = useState(null)
 
@@ -32,12 +34,23 @@ export default function Students() {
 
   useEffect(() => { load() }, [])
 
-  const openAdd  = () => { setEditing(null); setForm(EMPTY); setError(''); setModal(true) }
-  const openEdit = (row) => { setEditing(row); setForm({ ...EMPTY, ...row }); setError(''); setModal(true) }
-  const closeModal = () => { setModal(false); setEditing(null) }
+  const openAdd  = () => { setEditing(null); setForm(EMPTY); setError(''); setFormErrors({}); setModal(true) }
+  const openEdit = (row) => { setEditing(row); setForm({ ...EMPTY, ...row }); setError(''); setFormErrors({}); setModal(true) }
+  const closeModal = () => { setModal(false); setEditing(null); setFormErrors({}) }
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError('')
+
+    // Frontend validation
+    const errs = validate({
+      class_id:   [validators.required(form.class_id, 'Class')],
+      student_id: [validators.required(form.student_id, 'Student ID')],
+      name:       [validators.required(form.name, 'Full Name')],
+      email:      [validators.email(form.email)],
+      phone:      [validators.phone(form.phone)],
+    })
+    if (Object.keys(errs).length > 0) { setFormErrors(errs); return }
+    setFormErrors({})
     const payload = {
       ...form,
       gender: form.gender || null,
@@ -231,84 +244,82 @@ export default function Students() {
 
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Student' : 'Add Student'}>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Class — top pe taaki pehle dikhe */}
-          <div>
-            <label className="label">Class *</label>
-            <select className="input" value={form.class_id}
+          {/* Class */}
+          <FormField label="Class" required error={formErrors.class_id}>
+            <select className={fieldClass(formErrors.class_id)} value={form.class_id}
               onChange={e => setForm({ ...form, class_id: e.target.value })}>
               <option value="">— Select Class —</option>
               {classes.map(c => (
-                <option key={c.id} value={c.id}>
-                  {c.name} — {c.semester} ({c.section})
-                </option>
+                <option key={c.id} value={c.id}>{c.name} — {c.semester} ({c.section})</option>
               ))}
             </select>
-            {classes.length === 0 && (
-              <p className="text-xs text-amber-500 mt-1">No classes found. Add classes first.</p>
-            )}
-          </div>
+            {classes.length === 0 && <p className="text-xs text-amber-500 mt-1">No classes found. Add classes first.</p>}
+          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Student ID *</label>
-              <input className="input" required value={form.student_id}
+            <FormField label="Student ID" required error={formErrors.student_id}>
+              <input className={fieldClass(formErrors.student_id)} value={form.student_id}
+                placeholder="e.g. STU001"
                 onChange={e => setForm({ ...form, student_id: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">Roll Number</label>
-              <input className="input" value={form.roll_number}
+            </FormField>
+            <FormField label="Roll Number">
+              <input className="input" value={form.roll_number} placeholder="e.g. 1"
                 onChange={e => setForm({ ...form, roll_number: e.target.value })} />
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="label">Full Name *</label>
-            <input className="input" required value={form.name}
+
+          <FormField label="Full Name" required error={formErrors.name}>
+            <input className={fieldClass(formErrors.name)} value={form.name}
+              placeholder="e.g. Aarav Sharma"
               onChange={e => setForm({ ...form, name: e.target.value })} />
-          </div>
+          </FormField>
+
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Email *</label>
-              <input className="input" type="email" required value={form.email}
+            <FormField label="Email" required error={formErrors.email}>
+              <input className={fieldClass(formErrors.email)} type="email" value={form.email}
+                placeholder="student@email.com"
                 onChange={e => setForm({ ...form, email: e.target.value })} />
-            </div>
-            <div>
-              <label className="label">Phone</label>
-              <input className="input" value={form.phone}
+            </FormField>
+            <FormField label="Phone" error={formErrors.phone} hint="10-digit number">
+              <input className={fieldClass(formErrors.phone)} value={form.phone}
+                placeholder="9876543210"
                 onChange={e => setForm({ ...form, phone: e.target.value })} />
-            </div>
+            </FormField>
           </div>
+
           {!editing && (
-            <div>
-              <label className="label">Login Password</label>
+            <FormField label="Login Password" hint="Leave blank to use Student ID as password">
               <input className="input" type="text" value={form.password}
-                placeholder="Leave blank to use Student ID as password"
+                placeholder="Leave blank to use Student ID"
                 onChange={e => setForm({ ...form, password: e.target.value })} />
-              <p className="text-xs text-slate-500 mt-1">
-                Student will use this email and password to log in.
-              </p>
-            </div>
+            </FormField>
           )}
+
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Gender</label>
+            <FormField label="Gender">
               <select className="input" value={form.gender}
                 onChange={e => setForm({ ...form, gender: e.target.value })}>
                 <option value="">Select</option>
                 <option>Male</option><option>Female</option><option>Other</option>
               </select>
-            </div>
-            <div>
-              <label className="label">Date of Birth</label>
+            </FormField>
+            <FormField label="Date of Birth">
               <input className="input" type="date" value={form.dob}
                 onChange={e => setForm({ ...form, dob: e.target.value })} />
-            </div>
+            </FormField>
           </div>
-          <div>
-            <label className="label">Address</label>
+
+          <FormField label="Address">
             <textarea className="input" rows={2} value={form.address}
+              placeholder="Optional"
               onChange={e => setForm({ ...form, address: e.target.value })} />
-          </div>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+          </FormField>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-red-600 text-sm">
+              ⚠ {error}
+            </div>
+          )}
           <div className="flex gap-3 pt-2">
             <button type="submit" className="btn-primary flex-1">
               {editing ? 'Save Changes' : 'Add Student'}
